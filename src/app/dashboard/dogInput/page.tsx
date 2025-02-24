@@ -30,10 +30,14 @@ import { DualSlider } from "@/app/components/ui/slider";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useAppSelector, useAppDispatch } from "@/hooks";
-import { dispatchActionGetDogs, dispatchActionGetDogsMatch } from "@/store";
+import {
+  dispatchActionGetAllDogs,
+  dispatchActionGetDogs,
+  dispatchActionGetDogsMatch,
+} from "@/store";
 import { useDebounce } from "use-debounce";
 import { z } from "zod";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   findSearchedNameOrZip,
   resetSearchedNameOrZip,
@@ -52,17 +56,7 @@ const FormSchema = z.object({
   ]),
 });
 
-interface onBreedChangeProps {
-  onBreedChange: (query: Array<string>) => void;
-  onSortChange: (querySort: string, queryDirection: string) => void;
-  onAgeChange: (queryAge: number[]) => void;
-}
-
-export default function DogsInput({
-  onBreedChange = (Array) => Array,
-  onSortChange = (string) => string,
-  onAgeChange = (Array) => Array,
-}: onBreedChangeProps) {
+export default function DogsInput() {
   const { dogBreeds, selectedDogsMatch, searchResults } = useAppSelector(
     (state) => state.dog
   );
@@ -73,7 +67,7 @@ export default function DogsInput({
   const [, setSelectedSubmit] = useState<string | number>("");
   const [debouncedAge] = useDebounce(selectedAge, 500);
   const isInitialMount = useRef(true);
-
+  const router = useRouter();
   const searchParams = useSearchParams();
   const params = new URLSearchParams(searchParams);
 
@@ -84,15 +78,32 @@ export default function DogsInput({
 
   useEffect(() => {
     dispatchActionGetDogs(dispatch).catch((err) => console.error(err));
-  }, []);
+  }, [dispatch]);
 
   useEffect(() => {
     if (isInitialMount.current) {
       isInitialMount.current = false;
       return;
     }
+    const onAgeChange = (queryAge: number[]) => {
+      const params = new URLSearchParams(searchParams);
+
+      if (queryAge) {
+        params.set("ageMin", queryAge[0].toString());
+        params.set("ageMax", queryAge[1].toString());
+      } else {
+        params.delete("ageMin");
+        params.delete("ageMax");
+      }
+
+      dispatchActionGetAllDogs(dispatch, params.toString()).catch((err) =>
+        console.error(err)
+      );
+      router.push(`?${params.toString()}`, { scroll: false });
+    };
+
     onAgeChange(debouncedAge);
-  }, [debouncedAge, onAgeChange]);
+  }, [debouncedAge, dispatch, router, searchParams]);
 
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
@@ -106,11 +117,36 @@ export default function DogsInput({
     dispatch(findSearchedNameOrZip(data.search as string));
   };
 
-  const handleBreedChange = (e: string) => {
-    setSelectedBreed(e);
-    onBreedChange([e]);
+  const handleBreedChange = (query: string) => {
+    setSelectedBreed(query);
+    const queryArr = [query];
+    const params = new URLSearchParams(searchParams);
+
+    if (queryArr && queryArr.length > 0) {
+      queryArr.forEach((breed) => {
+        params.append("breeds", breed);
+      });
+    }
+
+    dispatchActionGetAllDogs(dispatch, params.toString()).catch((err) =>
+      console.error(err)
+    );
+    router.push(`?${params.toString()}`, { scroll: false });
   };
 
+  const onSortChange = (querySort: string, queryDirection: string) => {
+    const params = new URLSearchParams(searchParams);
+
+    if (querySort) {
+      params.set("sort", `${querySort}${":"}${queryDirection}`);
+    } else {
+      params.delete("sort");
+    }
+    dispatchActionGetAllDogs(dispatch, params.toString()).catch((err) =>
+      console.error(err)
+    );
+    router.push(`?${params.toString()}`, { scroll: false });
+  };
   const handleSortChange = (e: string, type: string) => {
     if (type === "Sort") {
       setSelectedSort(e);
