@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { Suspense, useEffect } from "react";
 import dynamic from "next/dynamic";
 import LoadingCards from "./dogCards/loading";
 import { useAppDispatch } from "@/hooks";
@@ -25,7 +25,9 @@ export default function Dashboard() {
       id="dog-dashboard"
       className="flex flex-col justify-start h-dvh items-center bg-gray-200 font-[family-name:var(--font-geist-sans)] py-10 overflow-x-hidden overflow-y-scroll"
     >
-      <DogsInput />
+      <Suspense>
+        <DogsInput />
+      </Suspense>
       <DynamicDogCards />
       <DogMatch />
     </section>
