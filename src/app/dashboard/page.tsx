@@ -1,24 +1,17 @@
 "use client";
 
-import { Suspense, useEffect } from "react";
-import dynamic from "next/dynamic";
-import LoadingCards from "./dogCards/loading";
-import { useAppDispatch } from "@/hooks";
-import { dispatchActionGetAllDogs } from "@/store";
+import { Suspense } from "react";
 import DogMatch from "./dogMatch/page";
 import DogsInput from "./dogInput/page";
-
-const DynamicDogCards = dynamic(() => import("./dogCards/page"), {
-  loading: () => <LoadingCards />,
-  ssr: false,
-});
+import DogCards from "./dogCards/page";
+import {
+  useGetAllDogsQuery,
+  useGetDogBreedsQuery,
+} from "@/utils/service/rtkQuery";
 
 export default function Dashboard() {
-  const dispatch = useAppDispatch();
-
-  useEffect(() => {
-    dispatchActionGetAllDogs(dispatch).catch((err) => console.error(err));
-  }, [dispatch]);
+  const { data: breedData } = useGetDogBreedsQuery();
+  const { data: searchData } = useGetAllDogsQuery();
 
   return (
     <section
@@ -26,9 +19,9 @@ export default function Dashboard() {
       className="flex flex-col justify-start h-dvh items-center bg-gray-200 font-[family-name:var(--font-geist-sans)] py-10 overflow-x-hidden overflow-y-scroll"
     >
       <Suspense>
-        <DogsInput />
+        <DogsInput dogBreeds={breedData} />
       </Suspense>
-      <DynamicDogCards />
+      <DogCards searchData={searchData} />
       <DogMatch />
     </section>
   );

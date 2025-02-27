@@ -19,8 +19,7 @@ import {
 } from "./select";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { useAppDispatch } from "@/hooks";
-import { dispatchActionGetAllDogs } from "@/store";
+import { useLazyGetAllDogsQuery } from "@/utils/service/rtkQuery";
 
 export interface PaginationWithLinksProps {
   pageSizeSelectOptions?: {
@@ -55,7 +54,7 @@ export function PaginationWithLinks({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const dispatch = useAppDispatch();
+  const [getAllDogs] = useLazyGetAllDogsQuery();
 
   const adjustedPage = page / pageSize > 1 ? page / pageSize : 1;
   const totalPageCount = Math.ceil(totalCount / pageSize);
@@ -69,7 +68,7 @@ export function PaginationWithLinks({
       newSearchParams.set(key, String(newPage * pageSize));
       return `${pathname}?${newSearchParams.toString()}`;
     },
-    [searchParams, pathname]
+    [pageSearchParam, searchParams, pathname, pageSize]
   );
 
   const navToPageSize = useCallback(
@@ -78,10 +77,17 @@ export function PaginationWithLinks({
       const newSearchParams = new URLSearchParams(searchParams || undefined);
       newSearchParams.set(key, String(newPageSize));
       newSearchParams.delete(pageSearchParam || "from"); // Clear the page number when changing page size
-      dispatchActionGetAllDogs(dispatch, newSearchParams.toString());
+      getAllDogs(newSearchParams.toString());
       router.push(`${pathname}?${newSearchParams.toString()}`);
     },
-    [searchParams, pathname]
+    [
+      pageSizeSelectOptions?.pageSizeSearchParam,
+      searchParams,
+      pageSearchParam,
+      getAllDogs,
+      router,
+      pathname,
+    ]
   );
 
   const renderPageNumbers = () => {

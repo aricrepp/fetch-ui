@@ -18,21 +18,21 @@ import {
 } from "@/app/components/ui/card";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
-import { dispatchActionAuthLogin } from "@/store/authStore/actions";
-import { useAppDispatch } from "@/hooks";
+import { useLoginMutation } from "@/utils/service/rtkQuery";
 
 export const LoginForm = () => {
   const router = useRouter();
-  const dispatch = useAppDispatch();
+
+  const [trigger] = useLoginMutation();
 
   const loginForm = useForm<FormFields>({
     resolver: zodResolver(schema),
   });
 
-  const handleOnSubmit = async (data: FormFields) => {
+  const handleOnSubmit = async (formField: FormFields) => {
     try {
-      const response = await dispatchActionAuthLogin(dispatch, data);
-      if (response) {
+      const payload = await trigger(formField).unwrap();
+      if (payload.message === "OK") {
         showSuccessNotification("Login Successful");
         router.push("/");
         router.refresh();

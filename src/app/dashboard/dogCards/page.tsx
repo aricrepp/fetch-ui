@@ -3,21 +3,37 @@
 
 import { useAppSelector } from "@/hooks";
 import { useEffect, useState } from "react";
-import { Dog } from "@/types";
+import { Dog, SearchResponse } from "@/types";
 import { IoIosCheckmark } from "react-icons/io";
 import { useAppDispatch } from "@/hooks";
 import { addSelectedDogs } from "@/store/dogStore/reducer";
+import LoadingCards from "./loading";
 
-export default function DogCards() {
-  const { allDogs, searchDogsInput } = useAppSelector((state) => state.dog);
+interface DogData {
+  search?: SearchResponse;
+  allDogs?: Dog[];
+}
+
+interface DogCardProps {
+  searchData?: DogData;
+}
+
+export default function DogCards({ searchData }: DogCardProps) {
+  const { searchDogsInput, allDogs } = useAppSelector((state) => state.dog);
   const dispatch = useAppDispatch();
   const [selectedDogs, setSelectedDogs] = useState<Array<string>>([]);
-  const [visibleDogs, setVisibleDogs] = useState<Dog[]>(allDogs);
+  const [visibleDogs, setVisibleDogs] = useState<Dog[]>();
+
+  useEffect(() => {
+    if (searchData?.allDogs && searchData?.search) {
+      setVisibleDogs(searchData.allDogs);
+    }
+  }, [searchData, dispatch]);
 
   useEffect(() => {
     if (searchDogsInput.length > 0) {
       setVisibleDogs(searchDogsInput);
-    } else if (!searchDogsInput.length) {
+    } else if (!searchDogsInput.length && allDogs) {
       setVisibleDogs(allDogs);
     }
   }, [allDogs, searchDogsInput]);
@@ -36,9 +52,11 @@ export default function DogCards() {
     return selectedDogs.includes(dog.id);
   };
 
+  if (!searchData) return <LoadingCards />;
+
   return (
     <div className="grid grid-cols-3 gap-4">
-      {visibleDogs.map((dog, index) => (
+      {visibleDogs?.map((dog, index) => (
         <div
           key={index}
           className={`relative flex justify-start items-center w-[400px] h-[150px] gap-4 bg-white rounded-xl hover:border hover:border-4 hover:border-green-400 ${

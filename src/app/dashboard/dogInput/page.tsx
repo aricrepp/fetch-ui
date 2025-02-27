@@ -30,11 +30,6 @@ import { DualSlider } from "@/app/components/ui/slider";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useAppSelector, useAppDispatch } from "@/hooks";
-import {
-  dispatchActionGetAllDogs,
-  dispatchActionGetDogs,
-  dispatchActionGetDogsMatch,
-} from "@/store";
 import { useDebounce } from "use-debounce";
 import { z } from "zod";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -42,6 +37,15 @@ import {
   findSearchedNameOrZip,
   resetSearchedNameOrZip,
 } from "@/store/dogStore/reducer";
+import {
+  useGetDogMatchMutation,
+  useLazyGetAllDogsQuery,
+} from "@/utils/service/rtkQuery";
+
+type DogBreeds = string[];
+interface DogInputProps {
+  dogBreeds?: DogBreeds;
+}
 
 const FormSchema = z.object({
   search: z.union([
@@ -56,8 +60,8 @@ const FormSchema = z.object({
   ]),
 });
 
-export default function DogsInput() {
-  const { dogBreeds, selectedDogsMatch, searchResults } = useAppSelector(
+export default function DogsInput({ dogBreeds }: DogInputProps) {
+  const { selectedDogsMatch, searchResults } = useAppSelector(
     (state) => state.dog
   );
   const [, setSelectedBreed] = useState<string>("");
@@ -74,11 +78,10 @@ export default function DogsInput() {
   const currentSize = parseInt(params.get("size") || "25");
   const currentPage = parseInt(params.get("from") || "1");
 
-  const dispatch = useAppDispatch();
+  const [getAllDogs] = useLazyGetAllDogsQuery();
+  const [trigger] = useGetDogMatchMutation();
 
-  useEffect(() => {
-    dispatchActionGetDogs(dispatch).catch((err) => console.error(err));
-  }, [dispatch]);
+  const dispatch = useAppDispatch();
 
   useEffect(() => {
     if (isInitialMount.current) {
@@ -96,14 +99,12 @@ export default function DogsInput() {
         params.delete("ageMax");
       }
 
-      dispatchActionGetAllDogs(dispatch, params.toString()).catch((err) =>
-        console.error(err)
-      );
+      getAllDogs(params.toString());
       router.push(`?${params.toString()}`, { scroll: false });
     };
 
     onAgeChange(debouncedAge);
-  }, [debouncedAge, dispatch, router, searchParams]);
+  }, [debouncedAge, router, searchParams, getAllDogs]);
 
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
@@ -128,9 +129,9 @@ export default function DogsInput() {
       });
     }
 
-    dispatchActionGetAllDogs(dispatch, params.toString()).catch((err) =>
-      console.error(err)
-    );
+    const resp = getAllDogs(params.toString()).unwrap();
+    console.log("resp: ", resp);
+
     router.push(`?${params.toString()}`, { scroll: false });
   };
 
@@ -142,11 +143,12 @@ export default function DogsInput() {
     } else {
       params.delete("sort");
     }
-    dispatchActionGetAllDogs(dispatch, params.toString()).catch((err) =>
-      console.error(err)
-    );
+
+    getAllDogs(params.toString());
+
     router.push(`?${params.toString()}`, { scroll: false });
   };
+
   const handleSortChange = (e: string, type: string) => {
     if (type === "Sort") {
       setSelectedSort(e);
@@ -163,7 +165,7 @@ export default function DogsInput() {
 
   const handleMatch = () => {
     const getDogIDs = selectedDogsMatch.map((dog) => dog.id);
-    dispatchActionGetDogsMatch(dispatch, getDogIDs);
+    trigger(getDogIDs);
   };
 
   return (
@@ -225,7 +227,7 @@ export default function DogsInput() {
                     <SelectValue placeholder="Breeds" />
                   </SelectTrigger>
                   <SelectContent>
-                    {dogBreeds.map((breed, index) => (
+                    {dogBreeds?.map((breed, index) => (
                       <SelectItem key={index} value={breed}>
                         {breed}
                       </SelectItem>
@@ -287,7 +289,7 @@ export default function DogsInput() {
           pageSize={currentSize}
           totalCount={searchResults.total}
           pageSizeSelectOptions={{
-            pageSizeOptions: [25, 50, 100, 300],
+            pageSizeOptions: [25, 50, 75, 100],
           }}
         />
       </span>

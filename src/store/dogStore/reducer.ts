@@ -1,6 +1,11 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { Dog, SearchResponse, Match, allDogs } from "@/types";
 
+interface DogData {
+  search: SearchResponse;
+  allDogs: Dog[];
+}
+
 const INITIAL_STATE: allDogs = {
   dogBreeds: [],
   allDogs: [],
@@ -68,6 +73,10 @@ const dogSlice = createSlice({
     resetSearchedNameOrZip: (state) => {
       state.searchDogsInput = [];
     },
+    setDataFromRTK: (state, actions: PayloadAction<DogData>) => {
+      state.allDogs = actions.payload.allDogs;
+      state.searchResults = actions.payload.search;
+    },
   },
 });
 
@@ -81,5 +90,6 @@ export const {
   resetDogMatch,
   findSearchedNameOrZip,
   resetSearchedNameOrZip,
+  setDataFromRTK,
 } = dogSlice.actions;
 export default dogSlice.reducer;

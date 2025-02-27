@@ -6,12 +6,12 @@ import { Dog } from "@/types";
 export const dispatchActionGetAllDogs = async (
   dispatch: Dispatch,
   queryParams?: string
-): Promise<Dog[]> => {
+): Promise<Dog[] | undefined> => {
   try {
     const payload = await dogsService.getAllDogsWithIDs(dispatch, queryParams);
-    if (!payload) throw new Error("Failed to fetch dog info");
+    // if (!payload) throw new Error("Failed to fetch dog info");
 
-    dispatch(setDogObjectInfo(payload));
+    if (payload) dispatch(setDogObjectInfo(payload));
     return payload;
   } catch (error) {
     throw error;

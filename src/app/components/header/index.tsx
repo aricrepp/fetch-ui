@@ -6,17 +6,19 @@ import {
   showErrorNotification,
 } from "@/utils/notifications";
 import { useRouter } from "next/navigation";
-import { dispatchActionAuthLogout } from "@/store";
-import { useAppDispatch } from "@/hooks";
+import { useLogoutMutation } from "@/utils/service/rtkQuery";
+import { deleteSession } from "@/utils/service";
 
 export const Header = () => {
   const router = useRouter();
-  const dispatch = useAppDispatch();
+  const [trigger] = useLogoutMutation();
 
   const handleSignOut = async () => {
     try {
-      const response = await dispatchActionAuthLogout(dispatch);
+      const response = await trigger("");
+
       if (response) {
+        deleteSession();
         showSuccessNotification("Logged Out");
         router.push("/");
         router.refresh();
